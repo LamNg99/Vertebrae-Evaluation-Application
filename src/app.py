@@ -6,6 +6,7 @@ import loaddicomfile as ldf
 import pydicom
 import cv2
 from PIL import ImageTk, Image
+import os
 
 
 class MainApp:
@@ -56,11 +57,6 @@ class MainApp:
 
         self.b3 = Button(text='Segmentation', width=50)
         self.b3.grid(row=3, column=0, pady = 2)
-
-        # Slider
-        self.current_value = tk.IntVar()
-        self.s1 = ttk.Scale(self.root, orient='horizontal', length=400, from_=1, to=100, command=self.update_image, variable=self.current_value)
-        self.s1.grid(row=5, column=1, columnspan=2)
     
     def get_directory(self):
         file_path = filedialog.askdirectory()
@@ -82,6 +78,18 @@ class MainApp:
         # Display slices
         self.display_sclice(self.dir_path+'/1.dcm')
 
+        count = 0
+        # Iterate directory
+        for path in os.listdir(self.dir_path):
+            # check if current path is a file
+            if os.path.isfile(os.path.join(self.dir_path, path)):
+                count += 1
+
+        # Slider
+        self.current_value = tk.IntVar()
+        self.s1 = ttk.Scale(self.root, orient='horizontal', length=400, from_=1, to=count, command=self.update_image, variable=self.current_value)
+        self.s1.grid(row=5, column=1, columnspan=2)
+
     def display_sclice(self, path):
         dicom_data = pydicom.dcmread(path)
         image = dicom_data.pixel_array
@@ -90,7 +98,7 @@ class MainApp:
         image = Image.fromarray(image)
 
         # Resize the image 
-        image = image.resize((550, 550), Image.ANTIALIAS)
+        image = image.resize((550, 550), Image.NEAREST)
 
         # Convert the PIL Image to a PhotoImage
         image = ImageTk.PhotoImage(image)
