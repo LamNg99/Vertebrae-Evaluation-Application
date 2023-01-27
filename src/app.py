@@ -2,10 +2,13 @@ import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter import Button, Checkbutton, Frame, Label, Scrollbar, filedialog, Text
 from tkinter import END, RIGHT, Y, BOTTOM, LEFT, W
-import loaddicomfile as ldf
+import utils as utils
 import pydicom
 import cv2
 from PIL import ImageTk, Image
+import matplotlib
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import os
 
 
@@ -15,16 +18,18 @@ class MainApp:
         self.root.geometry("1200x800+0+0")
         self.root.title("Veterbrae Evaluation Software")
         #self.root.config(bg="skyblue")
-        self.dir_path = ''
+
+        self.dir_path = None
+        self.image = None
 
         # Frames
         self.f1 = Frame(self.root)
         self.f1.grid(row=1, column=1, columnspan=2, rowspan=2)
 
-        self.f2 = Frame(self.root, highlightbackground='black', highlightthickness=1, width=550, height=550, bd= 0)
+        self.f2 = Frame(self.root, highlightbackground='black', highlightthickness=1, width=500, height=500, bd= 0)
         self.f2.grid(row=4, column=0, padx=20, pady=20)
 
-        self.f3 = Frame(self.root, highlightbackground='black', highlightthickness=1, width=550, height=550, bd= 0)
+        self.f3 = Frame(self.root, highlightbackground='black', highlightthickness=1, width=500, height=500, bd= 0)
         self.f3.grid(row=4, column=1, padx=20, pady=20, columnspan=2)
 
         # Scroll bar
@@ -40,13 +45,13 @@ class MainApp:
 
         # Checkboxes
         self.var1 = tk.BooleanVar()
-        self.c1 = Checkbutton(text='Protected Display', font=('Arial',10), variable=self.var1, onvalue='True', offvalue='False')
-        self.c1.grid(row=0, column=2)
+        self.cb1 = Checkbutton(text='Protected Display', font=('Arial',10), variable=self.var1, onvalue='True', offvalue='False')
+        self.cb1.grid(row=0, column=2, pady=2)
 
         # Text Boxes
-        self.t1 = Text(self.f1, height=5, width=50, yscrollcommand=self.scroll_bar.set, wrap='none')
-        self.t1.pack()
-        self.scroll_bar.config(command=self.t1.yview)
+        self.tb1 = Text(self.f1, height=5, width=50, yscrollcommand=self.scroll_bar.set, wrap='none')
+        self.tb1.pack()
+        self.scroll_bar.config(command=self.tb1.yview)
 
         # Buttons
         self.b1 = Button(text='Load DICOM File', command=self.load_dicom_file, width=50)
@@ -57,26 +62,45 @@ class MainApp:
 
         self.b3 = Button(text='Segmentation', width=50)
         self.b3.grid(row=3, column=0, pady = 2)
-    
+
+        # Combo boxes
+        self.window_options = [
+            'Original',
+            'Soft Tissue',
+            'Bone',
+            'Mediastinum'
+        ]
+        self.cbb1 = ttk.Combobox(self.root, value=self.window_options)
+        self.option = self.cbb1.current(0)
+        self.cbb1.bind('<<ComboboxSelected>>', self.window_image)
+        self.cbb1.grid(row=3, column=1)
+
     def get_directory(self):
         file_path = filedialog.askdirectory()
-        print(file_path)
         return file_path
+
+    def get_dicom_image(self, path):
+        dicom_data = pydicom.dcmread(path)
+        self.image = utils.transform_to_hu(dicom_data)
+        return self.image
 
     def load_dicom_file(self):
         # Clear any previous info in the textbox
-        self.t1.delete(1.0, END)
+        self.tb1.delete(1.0, END)
 
         # Get directory path 
         self.dir_path = self.get_directory()
         
         # Get patient's info
-        self.info = ldf.load_dcm_info(self.dir_path, self.var1.get())
+        self.info = utils.load_dcm_info(self.dir_path, self.var1.get())
         for item in self.info:
-            self.t1.insert(1.0, f'{item[0]:25} : {item[1]} \n')
+            self.tb1.insert(1.0, f'{item[0]:25} : {item[1]} \n')
 
-        # Display slices
-        self.display_sclice(self.dir_path+'/1.dcm')
+        # Get DICOM image
+        self.get_dicom_image(self.dir_path+'/1.dcm')
+
+        # Display first slice
+        self.display_sclice()
 
         count = 0
         # Iterate directory
@@ -90,25 +114,35 @@ class MainApp:
         self.s1 = ttk.Scale(self.root, orient='horizontal', length=400, from_=1, to=count, command=self.update_image, variable=self.current_value)
         self.s1.grid(row=5, column=1, columnspan=2)
 
-    def display_sclice(self, path):
-        dicom_data = pydicom.dcmread(path)
-        image = dicom_data.pixel_array
+    def display_sclice(self):
+        slice = self.image
+        if self.option ==  'Original':
+            slice = self.image
+        elif self.option == 'Soft Tissue':
+            slice = utils.apply_window(self.image, 40, 80)
+        elif self.option == 'Bone':
+            slice = utils.apply_window(self.image, 400, 1000)
+        elif self.option == 'Mediastinum':
+            slice = utils.apply_window(self.image, 50, 350)
 
-        # Convert the image to a PIL Image
-        image = Image.fromarray(image)
+        # Create a figure of specific size
+        figure = Figure(figsize=(5,5), dpi=100)
 
-        # Resize the image 
-        image = image.resize((550, 550), Image.NEAREST)
+        # Define the points for plotting the figure
+        plot = figure.add_subplot(1, 1, 1)
+        plot.imshow(slice, cmap='gray')
+        plot.axis('off')
 
-        # Convert the PIL Image to a PhotoImage
-        image = ImageTk.PhotoImage(image)
+        canvas = FigureCanvasTkAgg(figure, self.root)
+        canvas.get_tk_widget().grid(row=4, column=1, padx=20, pady=20, columnspan=2)
 
-        self.l2.configure(image=image)
-        self.l2.image = image
+    def update_image(self, event):
+        self.image = self.get_dicom_image(self.dir_path + '/' + str(self.current_value.get()) + '.dcm')
+        self.display_sclice()
 
-    def update_image(self, even):
-        # file_path = self.get_directory()
-        self.display_sclice(self.dir_path + '/' + str(self.current_value.get()) + '.dcm')
+    def window_image(self, event):
+        self.option = self.cbb1.get()
+        self.display_sclice()
         
 
 
