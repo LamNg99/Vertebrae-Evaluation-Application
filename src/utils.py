@@ -1,6 +1,9 @@
 import numpy as np 
 import pydicom
 import os
+import scipy.ndimage
+from skimage import measure
+import glob
 
 def load_dcm_info(path, private=False):
     # Get patient's infomation in the first slice
@@ -63,7 +66,17 @@ def load_slices(path):
     slices.sort(key = lambda x: int(x.InstanceNumber), reverse=True)  
     return slices
 
-def get_pixels_hu(slices):
+
+def transform_to_hu(dicom_data):
+    intercept = dicom_data.RescaleIntercept
+    slope = dicom_data.RescaleSlope
+    pixel_array = dicom_data.pixel_array
+
+    hu_image = pixel_array * slope + intercept
+
+    return hu_image
+
+def transform_all_to_hu(slices):
     image = np.stack([s.pixel_array for s in slices])
     # Convert to int16 (from sometimes int16), 
     # should be possible as values should always be low enough (<32k)
@@ -71,7 +84,7 @@ def get_pixels_hu(slices):
 
     # Set outside-of-scan pixels to 0
     # The intercept is usually -1024, so air is approximately 0
-    image[image <= -1000] = 0
+    image[image <= -2000] = 0
     
     # Convert to Hounsfield units (HU)
     for slice_number in range(len(slices)):
@@ -86,3 +99,40 @@ def get_pixels_hu(slices):
         image[slice_number] += np.int16(intercept)
     
     return np.array(image, dtype=np.int16)
+
+def apply_window(image, window_center, window_width):
+        img_min = window_center - window_width // 2
+        img_max = window_center + window_width // 2
+        window_image = image.copy()
+        window_image[window_image < img_min] = img_min
+        window_image[window_image > img_max] = img_max
+
+        return window_image
+
+def resample(image, scan):
+    # Determine current pixel spacing
+    new_spacing = [1, 1, 1]
+    spacing = map(float, ([scan[0].SliceThickness] + [scan[0].PixelSpacing[0]] + [scan[0].PixelSpacing[1]]))
+    spacing = np.asarray(list(spacing))
+
+    resize_factor = spacing / new_spacing
+    new_real_shape = image.shape * resize_factor
+    new_shape = np.round(new_real_shape)
+    real_resize_factor = new_shape / image.shape
+    new_spacing = spacing / real_resize_factor
+    image = scipy.ndimage.interpolation.zoom(image, real_resize_factor)
+
+    return image, new_spacing
+
+def make_mesh(image, threshold=-300, step_size=10):
+    # Position the scan upright, so the head of 
+    # the patient would be at the top facing the camera
+    p = image.transpose(2, 1, 0)
+
+    # Calculating surface
+    verts, faces, norm, val = measure.marching_cubes_lewiner(p, threshold, spacing=(1, 1, 1),
+                                                             gradient_direction='descent', step_size=step_size,
+                                                             allow_degenerate=True)
+    return verts, faces
+
+    
