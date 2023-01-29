@@ -124,15 +124,13 @@ def resample(image, scan):
 
     return image, new_spacing
 
-def make_mesh(image, threshold=-300, step_size=10):
+def make_mesh(image, threshold, step_size):
     # Position the scan upright, so the head of 
     # the patient would be at the top facing the camera
     p = image.transpose(2, 1, 0)
 
     # Calculating surface
-    verts, faces, norm, val = measure.marching_cubes_lewiner(p, threshold, spacing=(1, 1, 1),
-                                                             gradient_direction='descent', step_size=step_size,
-                                                             allow_degenerate=True)
-    return verts, faces
+    verts, faces, _, _ = measure.marching_cubes(p, threshold)
+    return verts, faces, p
 
     

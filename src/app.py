@@ -1,36 +1,39 @@
 import tkinter as tk
 import tkinter.ttk as ttk
-from tkinter import Button, Checkbutton, Frame, Label, Scrollbar, filedialog, Text
-from tkinter import END, RIGHT, Y, BOTTOM, LEFT, W
+from tkinter import *
 import utils as utils
 import pydicom
-import cv2
-from PIL import ImageTk, Image
 import matplotlib
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import os
+import numpy as np
+from view3d import View3D
 
 
 class MainApp:
     def __init__(self, root):
         self.root = root 
-        self.root.geometry("1200x800+0+0")
+        self.root.geometry("1100x800+0+0")
         self.root.title("Veterbrae Evaluation Software")
         #self.root.config(bg="skyblue")
 
         self.dir_path = None
         self.image = None
+        self.window = None
+        self.plane = None
+        self.dicom_slices = None
+        self.hu_slices = None
 
         # Frames
         self.f1 = Frame(self.root)
         self.f1.grid(row=1, column=1, columnspan=2, rowspan=2)
 
         self.f2 = Frame(self.root, highlightbackground='black', highlightthickness=1, width=500, height=500, bd= 0)
-        self.f2.grid(row=4, column=0, padx=20, pady=20)
+        self.f2.grid(row=5, column=0, padx=20, pady=20)
 
         self.f3 = Frame(self.root, highlightbackground='black', highlightthickness=1, width=500, height=500, bd= 0)
-        self.f3.grid(row=4, column=1, padx=20, pady=20, columnspan=2)
+        self.f3.grid(row=5, column=1, padx=20, pady=20, columnspan=2)
 
         # Scroll bar
         self.scroll_bar = Scrollbar(self.f1, width=10)
@@ -40,12 +43,9 @@ class MainApp:
         self.l1 = Label(self.root, text='DICOM info', font=('Arial', 10))
         self.l1.grid(row=0, column=1)
 
-        self.l2 = Label(self.root)
-        self.l2.grid(row=4, column=1, padx=20, pady=20, columnspan=2)
-
         # Checkboxes
         self.var1 = tk.BooleanVar()
-        self.cb1 = Checkbutton(text='Protected Display', font=('Arial',10), variable=self.var1, onvalue='True', offvalue='False')
+        self.cb1 = Checkbutton(self.root, text='Protected Display', font=('Arial',10), variable=self.var1, onvalue='True', offvalue='False')
         self.cb1.grid(row=0, column=2, pady=2)
 
         # Text Boxes
@@ -54,29 +54,39 @@ class MainApp:
         self.scroll_bar.config(command=self.tb1.yview)
 
         # Buttons
-        self.b1 = Button(text='Load DICOM File', command=self.load_dicom_file, width=50)
+        self.b1 = Button(self.root, text='Load DICOM File', command=self.load_dicom_file, width=50)
         self.b1.grid(row=1, column=0, pady = 2)
 
-        self.b2 = Button(text='3D View', width=50)
+        self.b2 = Button(self.root, text='3D View', width=50, command= lambda: self.view_3d(View3D, self.hu_slices, self.dicom_slices))
         self.b2.grid(row=2, column=0, pady = 2)
 
-        self.b3 = Button(text='Segmentation', width=50)
+        self.b3 = Button(self.root, text='Segmentation', width=50)
         self.b3.grid(row=3, column=0, pady = 2)
 
         # Combo boxes
+        self.plane_options = [
+            'Axial',
+            'Saggital',
+            'Coronal'
+        ]
+        self.cbb1 = ttk.Combobox(self.root, value=self.plane_options)
+        self.option = self.cbb1.current(0)
+        self.cbb1.bind('<<ComboboxSelected>>', self.plane_image)
+        self.cbb1.grid(row=4, column=0, pady = 20)
+
         self.window_options = [
             'Original',
             'Soft Tissue',
             'Bone',
             'Mediastinum'
         ]
-        self.cbb1 = ttk.Combobox(self.root, value=self.window_options)
-        self.option = self.cbb1.current(0)
-        self.cbb1.bind('<<ComboboxSelected>>', self.window_image)
-        self.cbb1.grid(row=3, column=1)
+        self.cbb2 = ttk.Combobox(self.root, value=self.window_options)
+        self.option = self.cbb2.current(0)
+        self.cbb2.bind('<<ComboboxSelected>>', self.window_image)
+        self.cbb2.grid(row=4, column=1, pady = 20)
 
     def get_directory(self):
-        file_path = filedialog.askdirectory()
+        file_path = tk.filedialog.askdirectory()
         return file_path
 
     def get_dicom_image(self, path):
@@ -96,8 +106,17 @@ class MainApp:
         for item in self.info:
             self.tb1.insert(1.0, f'{item[0]:25} : {item[1]} \n')
 
+        # Load all the slices
+        self.dicom_slices = utils.load_slices(self.dir_path)
+
+        # Transform all slices to HU
+        self.hu_slices = utils.transform_all_to_hu(self.dicom_slices)
+
         # Get DICOM image
         self.get_dicom_image(self.dir_path+'/1.dcm')
+
+        # Display axial plane
+        self.display_plane()
 
         # Display first slice
         self.display_sclice()
@@ -112,21 +131,22 @@ class MainApp:
         # Slider
         self.current_value = tk.IntVar()
         self.s1 = ttk.Scale(self.root, orient='horizontal', length=400, from_=1, to=count, command=self.update_image, variable=self.current_value)
-        self.s1.grid(row=5, column=1, columnspan=2)
+        self.s1.grid(row=6, column=1, columnspan=2)
 
     def display_sclice(self):
         slice = self.image
-        if self.option ==  'Original':
+        if self.window ==  'Original':
             slice = self.image
-        elif self.option == 'Soft Tissue':
+        elif self.window == 'Soft Tissue':
             slice = utils.apply_window(self.image, 40, 80)
-        elif self.option == 'Bone':
+        elif self.window == 'Bone':
             slice = utils.apply_window(self.image, 400, 1000)
-        elif self.option == 'Mediastinum':
+        elif self.window == 'Mediastinum':
             slice = utils.apply_window(self.image, 50, 350)
 
         # Create a figure of specific size
         figure = Figure(figsize=(5,5), dpi=100)
+        figure.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
 
         # Define the points for plotting the figure
         plot = figure.add_subplot(1, 1, 1)
@@ -134,15 +154,68 @@ class MainApp:
         plot.axis('off')
 
         canvas = FigureCanvasTkAgg(figure, self.root)
-        canvas.get_tk_widget().grid(row=4, column=1, padx=20, pady=20, columnspan=2)
+        canvas.get_tk_widget().grid(row=5, column=1, padx=20, pady=20, columnspan=2)
+
+    def display_plane(self):
+        ds = self.dicom_slices
+        pixel_spacing = ds[0].PixelSpacing
+        slice_thickness = ds[0].SliceThickness
+        axial_aspect = pixel_spacing[1] / pixel_spacing[0]
+        saggital_aspect = pixel_spacing[1] / slice_thickness
+        coronal_aspect = slice_thickness / pixel_spacing[0]
+        img_shape = list(ds[0].pixel_array.shape)
+        img_shape.append(len(ds))
+        img3d = np.zeros(img_shape)
+
+        for i, s in enumerate(ds):
+            img2d = s.pixel_array
+            img3d[:, :, i] = img2d
+        
+        # Create a figure of specific size
+        figure = Figure(figsize=(5,5), dpi=100)
+        figure.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
+
+        # Define the points for plotting the figure
+        plot = figure.add_subplot(1, 1, 1)
+        plot.imshow(img3d[:, :, img_shape[2]//2], cmap='gray')
+        plot.set_aspect(axial_aspect)
+
+        if self.plane == 'Axial':
+            plot.imshow(img3d[:, :, img_shape[2]//2], cmap='gray')
+            plot.set_aspect(axial_aspect)
+        elif self.plane == 'Saggital':
+            plot.imshow(img3d[:, img_shape[1]//2, :], cmap='gray')
+            plot.set_aspect(saggital_aspect)
+        elif self.plane == 'Coronal':
+            plot.imshow(img3d[img_shape[0]//2, :, :].T, cmap='gray')
+            plot.set_aspect(coronal_aspect)
+        
+        plot.axis('off')
+
+        canvas = FigureCanvasTkAgg(figure, self.root)
+        canvas.get_tk_widget().grid(row=5, column=0, padx=20, pady=20)
 
     def update_image(self, event):
         self.image = self.get_dicom_image(self.dir_path + '/' + str(self.current_value.get()) + '.dcm')
         self.display_sclice()
 
     def window_image(self, event):
-        self.option = self.cbb1.get()
+        self.window = self.cbb2.get()
         self.display_sclice()
+
+    def plane_image(self, event):
+        self.plane = self.cbb1.get()
+        self.display_plane()
+
+    def view_3d(self, _class, image, scan):
+        try:
+            if self.new.state() == "normal":
+                self.new.focus()
+        except:
+            self.new = tk.Toplevel(self.root)
+            _class(self.new, image, scan)
+
+        
         
 
 
