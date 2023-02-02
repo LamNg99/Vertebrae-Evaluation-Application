@@ -10,27 +10,22 @@ import cv2
 import PIL
 import imutils
 
-path = "./im2"
+path = "./im2/100.dcm"
 
 #Load Dicom file and save side view of scan as PNG
 def initializeDicom():
-    slices = [dicom.read_file(path+'/'+s) for s in os.listdir(path)]
-    slices.sort(key=lambda x: int(x.SliceLocation))
-    ps = slices[0].PixelSpacing
-    ss = slices[0].SliceThickness
-    sag_aspect = ps[1]/ss
-    img_shape = list(slices[0].pixel_array.shape)
-    img_shape.append(len(slices))
-    img3d = np.zeros(img_shape)    
-    for i, s in enumerate(slices):
-        img2d = s.pixel_array
-        img3d[:, :, i] = img2d
-    a2 = plt.subplot()
-    plt.imshow(img3d[:, img_shape[1]//2, :])
-    a2.set_aspect(sag_aspect)
+
+    dcm = dicom.dcmread(path)    
+    # Get a specific slice
+    slice = dcm.pixel_array[:,:]
+
+    # Plot the slice using matplotlib
+    plt.imshow(slice, cmap='gray')
+
+    # Save the slice as a PNG
     plt.axis('off')
     plt.savefig('scan.png',bbox_inches='tight',transparent=True, pad_inches=0)
-   
+    
 def is_contour_bad(c):
 	# approximate the contour
 	peri = cv2.arcLength(c, True)
@@ -40,19 +35,17 @@ def is_contour_bad(c):
 
 def is_contour_small(c):
 	# approximate the contour
-	size = cv2.contourArea(c) > 100
+	size = cv2.contourArea(c) > 200
 	# the contour is 'bad' if it is too small
 	return size
 
 initializeDicom()
 
-scan = plt.imread("scan.png")
-spine = np.rot90(scan)
-plt.imshow(spine)
 
 from PIL import Image, ImageFilter
 img = Image.open('scan.png').convert('L')
-blurred_image = img.filter(ImageFilter.MedianFilter).transpose(Image.Transpose.FLIP_LEFT_RIGHT).rotate(270).save('grayscale.png')
+blurred_image = img.filter(ImageFilter.MedianFilter).save('grayscale.png')
+#blurred_image = img.filter(ImageFilter.MedianFilter).transpose(Image.Transpose.FLIP_LEFT_RIGHT).rotate(270).save('grayscale.png')
 gray = plt.imread("grayscale.png")
 
 threshold = 0.420
@@ -81,10 +74,30 @@ for c in cnts:
 	if is_contour_bad(c) and is_contour_small(c):
 		cv2.drawContours(mask, [c], -1, 0, -1)
 # remove the contours from the image and show the resulting images
-image = cv2.bitwise_and(image, image, mask=mask)
-cv2.imshow("Mask", mask)
-cv2.imshow("After", image)
-cv2.imwrite("result.png", image)
-cv2.waitKey(0)
+#image = cv2.bitwise_and(image, image, mask=mask)
 
-im2 = cv2.imread("result.png")
+cnts = sorted(cnts, key=cv2.contourArea, reverse=True)
+cnts = cnts[:4]
+
+img_gray = cv2.imread("grayscale.png", cv2.IMREAD_GRAYSCALE)
+
+img_contour = cv2.addWeighted(img_gray, 0.7, mask, 0.3, 0)
+result = cv2.bitwise_and(img_contour, img_contour, mask=mask)
+# create a blank image to store all the contoured sections
+all_contoured_sections = np.zeros_like(img_gray)
+for i in range(len(cnts)):
+    contoured_section = img_gray[cnts[i][:,0][:,1].min():cnts[i][:,0][:,1].max(), cnts[i][:,0][:,0].min():cnts[i][:,0][:,0].max()]
+    cv2.drawContours(all_contoured_sections, [cnts[i]], 0, contoured_section.mean(), -1)
+    print("Mean intensity: ", contoured_section.mean())
+    
+cv2.imshow("All contoured sections", all_contoured_sections)
+sorted_cnts = sorted(cnts, key=cv2.contourArea, reverse=True)
+largest_cnts = sorted_cnts[:]
+
+for cnt in largest_cnts:
+    area = cv2.contourArea(cnt)
+    print("Contour Area:", area)
+cv2.imshow("Mask", mask)
+cv2.imshow("After", result)
+cv2.imwrite("result.png", result)
+cv2.waitKey(0)
