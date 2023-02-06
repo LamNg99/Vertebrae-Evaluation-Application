@@ -9,6 +9,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import os
 import numpy as np
 from view3d import View3D
+from viewsegmentation import ViewSegmentation
 
 
 class MainApp:
@@ -60,7 +61,7 @@ class MainApp:
         self.b2 = Button(self.root, text='3D View', width=50, command= lambda: self.view_3d(View3D, self.hu_slices, self.dicom_slices))
         self.b2.grid(row=2, column=0, pady = 2)
 
-        self.b3 = Button(self.root, text='Segmentation', width=50)
+        self.b3 = Button(self.root, text='Segmentation', width=50, command= lambda: self.view_segmentation(ViewSegmentation))
         self.b3.grid(row=3, column=0, pady = 2)
 
         # Combo boxes
@@ -89,8 +90,8 @@ class MainApp:
         file_path = tk.filedialog.askdirectory()
         return file_path
 
-    def get_dicom_image(self, path):
-        dicom_data = pydicom.dcmread(path)
+    def get_dicom_image(self, index):
+        dicom_data = self.dicom_slices[index]
         self.image = utils.transform_to_hu(dicom_data)
         return self.image
 
@@ -113,7 +114,7 @@ class MainApp:
         self.hu_slices = utils.transform_all_to_hu(self.dicom_slices)
 
         # Get DICOM image
-        self.get_dicom_image(self.dir_path+'/1.dcm')
+        self.get_dicom_image(0)
 
         # Display axial plane
         self.display_plane()
@@ -196,7 +197,7 @@ class MainApp:
         canvas.get_tk_widget().grid(row=5, column=0, padx=20, pady=20)
 
     def update_image(self, event):
-        self.image = self.get_dicom_image(self.dir_path + '/' + str(self.current_value.get()) + '.dcm')
+        self.image = self.get_dicom_image(self.current_value.get())
         self.display_sclice()
 
     def window_image(self, event):
@@ -214,6 +215,14 @@ class MainApp:
         except:
             self.new = tk.Toplevel(self.root)
             _class(self.new, image, scan)
+
+    def view_segmentation(self, _class):
+        try:
+            if self.new.state() == "normal":
+                self.new.focus()
+        except:
+            self.new = tk.Toplevel(self.root)
+            _class(self.new)
 
         
         
