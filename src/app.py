@@ -25,7 +25,6 @@ class MainApp:
         self.plane = None
         self.dicom_slices = None
         self.hu_slices = None
-        self.saggital_image = None
 
         # Frames
         self.f1 = Frame(self.root)
@@ -62,7 +61,7 @@ class MainApp:
         self.b2 = Button(self.root, text='3D View', width=50, command= lambda: self.view_3d(View3D, self.hu_slices, self.dicom_slices))
         self.b2.grid(row=2, column=0, pady = 2)
 
-        self.b3 = Button(self.root, text='Segmentation', width=50, command= lambda: self.view_segmentation(ViewSegmentation, self.saggital_image, self.dicom_slices))
+        self.b3 = Button(self.root, text='Segmentation', width=50, command= lambda: self.view_segmentation(ViewSegmentation, self.hu_slices))
         self.b3.grid(row=3, column=0, pady = 2)
 
         # Combo boxes
@@ -92,7 +91,7 @@ class MainApp:
         return file_path
 
     def get_dicom_image(self, index):
-        dicom_data = self.dicom_slices[index-1]
+        dicom_data = self.dicom_slices[index]
         self.image = utils.transform_to_hu(dicom_data)
         return self.image
 
@@ -125,7 +124,7 @@ class MainApp:
 
         # Slider
         self.current_value = tk.IntVar()
-        self.s1 = ttk.Scale(self.root, orient='horizontal', length=400, from_=1, to=len(self.dicom_slices), command=self.update_image, variable=self.current_value)
+        self.s1 = ttk.Scale(self.root, orient='horizontal', length=400, from_=0, to=len(self.dicom_slices)-1, command=self.update_image, variable=self.current_value)
         self.s1.grid(row=6, column=1, columnspan=2)
 
     def display_sclice(self):
@@ -169,24 +168,32 @@ class MainApp:
         # Create a figure of specific size
         figure = Figure(figsize=(5,5), dpi=100)
         figure.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
-        self.saggital_image = figure
 
         # Define the points for plotting the figure
         plot = figure.add_subplot(1, 1, 1)
         plot.imshow(img3d[:, img_shape[1]//2, :], cmap='gray')
         plot.set_aspect(saggital_aspect)
+        plot.axis('off')
+
+        path = os.path.dirname(self.dir_path) + '/temp_images'
+        if not os.path.exists(path):
+            os.makedirs(path)
+        
+        os.chdir(path)
+        plot.figure.savefig('saggital.png')
 
         if self.plane == 'Axial':
             plot.imshow(img3d[:, :, img_shape[2]//2], cmap='gray')
             plot.set_aspect(axial_aspect)
+            plot.axis('off')
         elif self.plane == 'Saggital':
             plot.imshow(img3d[:, img_shape[1]//2, :], cmap='gray')
             plot.set_aspect(saggital_aspect)
+            plot.axis('off')
         elif self.plane == 'Coronal':
             plot.imshow(img3d[img_shape[0]//2, :, :].T, cmap='gray')
             plot.set_aspect(coronal_aspect)
-        
-        plot.axis('off')
+            plot.axis('off')
 
         canvas = FigureCanvasTkAgg(figure, self.root)
         canvas.get_tk_widget().grid(row=5, column=0, padx=20, pady=20)
@@ -211,13 +218,13 @@ class MainApp:
             self.new = tk.Toplevel(self.root)
             _class(self.new, image, scan)
 
-    def view_segmentation(self, _class, saggital_view, slices):
+    def view_segmentation(self, _class, hu_slices):
         try:
             if self.new.state() == "normal":
                 self.new.focus()
         except:
             self.new = tk.Toplevel(self.root)
-            _class(self.new, saggital_view, slices)
+            _class(self.new, hu_slices)
 
         
         
