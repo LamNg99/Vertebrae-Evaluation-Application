@@ -17,6 +17,7 @@ class MainApp:
         self.root = root 
         self.root.geometry("1100x800+0+0")
         self.root.title("Veterbrae Evaluation Software")
+        self.root.resizable(False, False)
         #self.root.config(bg="skyblue")
 
         self.dir_path = None
@@ -51,7 +52,7 @@ class MainApp:
 
         # Text Boxes
         self.tb1 = Text(self.f1, height=5, width=50, yscrollcommand=self.scroll_bar.set, wrap='none')
-        self.tb1.pack()
+        self.tb1.pack(fill='both')
         self.scroll_bar.config(command=self.tb1.yview)
 
         # Buttons

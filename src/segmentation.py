@@ -21,9 +21,10 @@ def get_segmentation(area_theshold):
 	original_gray = cv2.cvtColor(original, cv2.COLOR_BGR2GRAY)
 	binary_gray = cv2.cvtColor(binary, cv2.COLOR_BGR2GRAY)
 
-	# Find Canny edges
-	edged = cv2.Canny(binary_gray, 30, 200)
-	cv2.imwrite('edged.png', edged)
+	blurred = cv2.GaussianBlur(binary_gray, (3, 3), 0)
+	edged = cv2.Canny(blurred, 10, 100)
+	edged = cv2.dilate(edged, None, iterations=1)
+	edged = cv2.erode(edged, None, iterations=1)
 
 	# Finding Contours
 	# Use a copy of the image e.g. edged.copy()

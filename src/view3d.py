@@ -13,6 +13,7 @@ class View3D:
         self.root = root 
         self.root.geometry("800x700+0+0")
         self.root.title("3D View")
+        self.root.resizable(False, False)
 
         self.image = image
         self.scan = scan
