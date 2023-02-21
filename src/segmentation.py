@@ -21,7 +21,12 @@ def get_segmentation(area_theshold):
 	original_gray = cv2.cvtColor(original, cv2.COLOR_BGR2GRAY)
 	binary_gray = cv2.cvtColor(binary, cv2.COLOR_BGR2GRAY)
 
-	blurred = cv2.GaussianBlur(binary_gray, (3, 3), 0)
+	slicedImage = binary_gray[0:400, 140:250]
+
+	background = np.zeros(original.shape[:2], dtype='uint8') * 255
+	background[0:400, 140:250] = slicedImage
+
+	blurred = cv2.GaussianBlur(background, (3, 3), 0)
 	edged = cv2.Canny(blurred, 10, 100)
 	edged = cv2.dilate(edged, None, iterations=1)
 	edged = cv2.erode(edged, None, iterations=1)

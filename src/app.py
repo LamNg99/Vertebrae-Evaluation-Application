@@ -62,7 +62,7 @@ class MainApp:
         self.b2 = Button(self.root, text='3D View', width=50, command= lambda: self.view_3d(View3D, self.hu_slices, self.dicom_slices))
         self.b2.grid(row=2, column=0, pady = 2)
 
-        self.b3 = Button(self.root, text='Segmentation', width=50, command= lambda: self.view_segmentation(ViewSegmentation, self.hu_slices))
+        self.b3 = Button(self.root, text='Segmentation', width=50, command= lambda: self.view_segmentation(ViewSegmentation, self.hu_slices, self.dicom_slices))
         self.b3.grid(row=3, column=0, pady = 2)
 
         # Combo boxes
@@ -219,13 +219,13 @@ class MainApp:
             self.new = tk.Toplevel(self.root)
             _class(self.new, image, scan)
 
-    def view_segmentation(self, _class, hu_slices):
+    def view_segmentation(self, _class, hu_slices, dicom_slices):
         try:
             if self.new.state() == "normal":
                 self.new.focus()
         except:
             self.new = tk.Toplevel(self.root)
-            _class(self.new, hu_slices)
+            _class(self.new, hu_slices, dicom_slices)
 
         
         
