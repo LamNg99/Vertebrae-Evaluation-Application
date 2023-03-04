@@ -1,12 +1,13 @@
 import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter import *
+from urllib import response
 
 class PopUp:
     def __init__(self, root, properties, tree):
         self.root = root
         self.root = root 
-        self.root.geometry("500x400+0+0")
+        self.root.geometry("350x300+0+0")
         self.root.title("Preview Vertebral Properties")
         self.root.resizable(False, False)
         
@@ -51,22 +52,47 @@ class PopUp:
         self.l77.grid(row=6, column=1, pady=2)
 
         self.l8 = Label(self.root, text='Vertebral Label:', font=('Arial',15))
-        self.l8.grid(row=6, column=0, pady=2)
+        self.l8.grid(row=7, column=0, pady=2)
 
 
         # Entry widget
         self.e1 = Entry(self.root, justify=CENTER)
         self.e1.insert(0, '')
-        self.e1.grid(row=6, column=1, pady=2)
+        self.e1.grid(row=7, column=1, pady=2)
 
         # Buttons
         self.b1 = Button(self.root, text='Add data', width=10, command=self.add_data)
-        self.b1.grid(row=7, column=0, pady = 2)
+        self.b1.grid(row=8, column=0, pady = 2)
+
+        self.b2 = Button(self.root, text='Cancel', width=10, command=self.cancel)
+        self.b2.grid(row=8, column=1, pady = 2)
 
     def add_data(self):
-        self.label = self.e1.get()
-        self.properties = [self.label] + self.properties
-        self.tree.insert('', END, values=tuple(self.properties))
-
-        self.root.destroy()
+        self.label = self.e1.get().strip().upper()
+        if not self.label or self.label.isspace():
+            tk.messagebox.showinfo('Invalid Label', 'Please label the vertebra before adding to the record', icon='info')
+        else:
+            self.properties = [self.label] + self.properties
+            children = self.tree.get_children('')
+            duplicate = None
+            response = 'no'
+            for child in children:
+                values = self.tree.item(child, 'values')
+                if self.label == values[0]:
+                    response = tk.messagebox.askquestion('Existed Label', 'The label is already existed. Do you want to overwrite this data?', icon='question')
+                    duplicate = child
+            if response == 'yes':
+                self.tree.delete(duplicate)
+                self.tree.insert('', END, values=self.properties)
+                self.root.destroy()
+            elif response == 'no' and duplicate is None:
+                self.tree.insert('', END, values=self.properties)
+                self.root.destroy()
+            else:
+                return None
+            
+    def cancel(self):
+        response = tk.messagebox.askquestion('Form', 'Data have not been added yet. Continue?', icon='question')
+        if response == 'yes':
+            self.root.destroy()
 
