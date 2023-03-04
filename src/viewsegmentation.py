@@ -303,7 +303,6 @@ class ViewSegmentation:
             self.new = tk.Toplevel(self.root)
             _class(self.new, properties, tree)
 
-    def add_data(self):
-        pass
+
     
         
