@@ -70,29 +70,29 @@ class PopUp:
     def add_data(self):
         self.label = self.e1.get().strip().upper()
         if not self.label or self.label.isspace():
-            tk.messagebox.showinfo('Invalid Label', 'Please label the vertebra before adding to the record', icon='info')
+            tk.messagebox.showinfo('Invalid Label', 'Please label the vertebra before adding to the record')
         else:
-            self.properties = [self.label] + self.properties
+            data = [self.label] + self.properties
             children = self.tree.get_children('')
             duplicate = None
             response = 'no'
             for child in children:
                 values = self.tree.item(child, 'values')
                 if self.label == values[0]:
-                    response = tk.messagebox.askquestion('Existed Label', 'The label is already existed. Do you want to overwrite this data?', icon='question')
+                    response = tk.messagebox.askquestion('Existed Label', 'The label is already existed. Do you want to overwrite this data?')
                     duplicate = child
             if response == 'yes':
                 self.tree.delete(duplicate)
-                self.tree.insert('', END, values=self.properties)
+                self.tree.insert('', END, values=data)
                 self.root.destroy()
             elif response == 'no' and duplicate is None:
-                self.tree.insert('', END, values=self.properties)
+                self.tree.insert('', END, values=data)
                 self.root.destroy()
             else:
                 return None
             
     def cancel(self):
-        response = tk.messagebox.askquestion('Form', 'Data have not been added yet. Continue?', icon='question')
+        response = tk.messagebox.askquestion('Form', 'Data have not been added yet. Continue?')
         if response == 'yes':
             self.root.destroy()
 

@@ -1,3 +1,4 @@
+from mailbox import ExternalClashError
 import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter import *
@@ -9,13 +10,14 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import os
 import cv2
+import csv
 from PIL import Image, ImageTk
 
 
 class ViewSegmentation:
     def __init__(self, root, hu_slices, dicom_slices):
         self.root = root 
-        self.root.geometry("1500x800+0+0")
+        self.root.geometry("1450x800+0+0")
         self.root.title("Segmentation")
         self.root.resizable(False, False)
 
@@ -34,20 +36,20 @@ class ViewSegmentation:
         self.label = None 
 
         # Labels
-        self.l1 = Label(self.root, text='Threshold', font=('Arial', 15))
+        self.l1 = Label(self.root, text='HU Threshold', font=('Arial', 15))
         self.l1.grid(row=0, column=2, pady=2)
 
         self.l2 = Label(self.root, text='Area Threshold', font=('Arial', 15))
         self.l2.grid(row=1, column=2, pady=2)
 
         self.l3 = Label(self.root, text='Saggital View', font=('Arial',15))
-        self.l3.grid(row=6, column=2, columnspan=2, sticky='S')
+        self.l3.grid(row=7, column=2, columnspan=2, sticky=S)
 
         self.l4 = Label(self.root, text='Corresponding Slice', font=('Arial',15))
-        self.l4.grid(row=6, column=4, columnspan=2, sticky='S')
+        self.l4.grid(row=7, column=4, columnspan=2, sticky=S)
 
         self.l5 = Label(self.root, text='Segmentation Result', font=('Arial',15))
-        self.l5.grid(row=6, column=6, columnspan=2, sticky='S')
+        self.l5.grid(row=7, column=6, columnspan=2, sticky=S)
 
         # Buttons
         self.b1 = Button(self.root, text='Extract Slice', width=40, command=self.extract_slice)
@@ -56,6 +58,12 @@ class ViewSegmentation:
         self.b2 = Button(self.root, text='Extract Properties', width=40, 
                         command= lambda: self.click_extract_properties(PopUp, self.properties, self.tree))
         self.b2.grid(row=3, column=2, pady = 2, columnspan=2)
+
+        self.b3 = Button(self.root, text='Delete data', width=15, command=self.delete_data)
+        self.b3.grid(row=4, column=6, padx=2, pady=2)
+
+        self.b4 = Button(self.root, text='Save data', width=15, command=self.save_data)
+        self.b4.grid(row=4, column=7, padx=2, pady=2)
 
         # Entry widgetValuess
         self.e1 = Entry(self.root, justify=CENTER)
@@ -69,23 +77,23 @@ class ViewSegmentation:
         # Sliders and Spin Boxes 
         self.val1 = tk.DoubleVar()
         self.spin1 = ttk.Spinbox(self.root, textvariable=self.val1, wrap=True, width=4, from_=0, to=400, increment=self.increment, command=self.update_slider1)
-        self.spin1.grid(row=4, column=0)
+        self.spin1.grid(row=5, column=0)
         self.s1 = ttk.Scale(self.root, orient='vertical', length=400, from_=0, to=400, command=self.on_slider1, variable=self.val1)
-        self.s1.grid(row=5, column=0)
+        self.s1.grid(row=6, column=0)
         
 
         self.val2 = tk.DoubleVar()
         self.spin2 = ttk.Spinbox(self.root, textvariable=self.val2, wrap=True, width=4, from_=0, to=400, increment=self.increment, command=self.update_slider2)
-        self.spin2.grid(row=4, column=1)
+        self.spin2.grid(row=5, column=1)
         self.s2 = ttk.Scale(self.root, orient='vertical', length=400, from_=0, to=400, command=self.on_slider2, variable=self.val2)
-        self.s2.grid(row=5, column=1)
+        self.s2.grid(row=6, column=1)
 
         # Frames
         self.f1 = Frame(self.root, highlightbackground='black', highlightthickness=1, width=400, height=400, bd= 0)
-        self.f1.grid(row=5, column=4, padx=20, pady=20, columnspan=2)
+        self.f1.grid(row=6, column=4, padx=20, pady=20, columnspan=2)
 
         self.f2 = Frame(self.root, highlightbackground='black', highlightthickness=1, width=400, height=400, bd= 0)
-        self.f2.grid(row=5, column=6, padx=20, pady=20, columnspan=2)
+        self.f2.grid(row=6, column=6, padx=20, pady=20, columnspan=2)
         
         self.f3 = Frame(self.root)
         self.f3.grid(row=1, column=4, columnspan=4, rowspan=3)
@@ -99,7 +107,7 @@ class ViewSegmentation:
         self.cbb1 = ttk.Combobox(self.root, value=self.slice_options)
         self.position = self.cbb1.current(1)
         self.cbb1.bind('<<ComboboxSelected>>', self.choose_slice)
-        self.cbb1.grid(row=4, column=4, pady = 20, columnspan=2, sticky='S')
+        self.cbb1.grid(row=5, column=4, pady = 20, columnspan=2, sticky=S)
 
         self.image_options = [
             'Binary Image',
@@ -109,11 +117,11 @@ class ViewSegmentation:
         self.cbb2 = ttk.Combobox(self.root, value=self.image_options)
         self.option = self.cbb2.current(0)
         self.cbb2.bind('<<ComboboxSelected>>', self.display_options)
-        self.cbb2.grid(row=4, column=6, pady = 20, columnspan=2, sticky='S')
+        self.cbb2.grid(row=5, column=6, pady = 20, columnspan=2, sticky=S)
 
         # Canvas
         self.canvas = Canvas(self.root, width=400, height=400)
-        self.canvas.grid(row=5, column=2, columnspan=2)
+        self.canvas.grid(row=6, column=2, columnspan=2)
         self.canvas.create_image(0, 0, anchor=NW, image=self.saggital_image)
         self.canvas.create_line(0, self.val1.get(), 400, self.val1.get(), tag="top_line", fill='red')
         self.canvas.create_line(0, self.val2.get(), 400, self.val2.get(), tag="top_line", fill='red')
@@ -153,6 +161,19 @@ class ViewSegmentation:
         tree.column('area_bmd', anchor=CENTER, stretch=NO, width=100)
         tree.column('volume_bmd', anchor=CENTER, stretch=NO, width=100)
         tree.column('elastic_modulus', anchor=CENTER, stretch=NO, width=100)
+
+        with open('result.csv') as csvfile:
+            reader = csv.DictReader(csvfile, delimiter=',')
+            for row in reader:
+                vertebral_label = row['Vertebral Label']
+                axial_area = row['Axial Area']
+                height = row['Vertebral Height']
+                volume = row['Volume']
+                bmc = row['Estimated BMC']
+                area_bmd = row['aBMD']
+                volume_bmd = row['vBMD']
+                elastic_modulus = row['Elastic Modulus']
+                tree.insert('', 0, values=[vertebral_label, axial_area, height, volume, bmc, area_bmd, volume_bmd, elastic_modulus])
 
         return tree
 
@@ -217,7 +238,7 @@ class ViewSegmentation:
         plot.figure.savefig('original.png')
 
         canvas = FigureCanvasTkAgg(figure, self.root)
-        canvas.get_tk_widget().grid(row=5, column=4, padx=20, pady=20, columnspan=2)
+        canvas.get_tk_widget().grid(row=6, column=4, padx=20, pady=20, columnspan=2)
 
     def get_binary(self):
         threshold = float(self.e1.get())
@@ -235,7 +256,7 @@ class ViewSegmentation:
         plot.figure.savefig('binary.png')
 
         canvas = FigureCanvasTkAgg(figure, self.root)
-        canvas.get_tk_widget().grid(row=5, column=6, padx=20, pady=20, columnspan=2)
+        canvas.get_tk_widget().grid(row=6, column=6, padx=20, pady=20, columnspan=2)
          
     def choose_slice(self, event):
         self.extract_slice()
@@ -249,7 +270,7 @@ class ViewSegmentation:
             self.image = ImageTk.PhotoImage(Image.open('segmentedimage.png').resize((400,400)))
 
         temp_canvas = Canvas(self.root, width=400, height=400)
-        temp_canvas.grid(row=5, column=6, columnspan=2)
+        temp_canvas.grid(row=6, column=6, columnspan=2)
         temp_canvas.create_image(0, 0, anchor=NW, image=self.image)
 
     def display_options(self, event):
@@ -302,6 +323,22 @@ class ViewSegmentation:
         except:
             self.new = tk.Toplevel(self.root)
             _class(self.new, properties, tree)
+
+    def delete_data(self):
+        selected_item = self.tree.selection()[0]
+        self.tree.delete(selected_item)
+
+    def save_data(self):
+        field = ['Vertebral Label', 'Axial Area', 'Vertebral Height', 'Volume', 'Estimated BMC', 'aBMD', 'vBMD', 'Elastic Modulus']
+        with open('result.csv', 'w') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(field)
+            
+            for row_id in self.tree.get_children():
+                row = self.tree.item(row_id)['values']
+                writer.writerow(row)
+        
+        tk.messagebox.showinfo('Info', 'Saved!')
 
 
     

@@ -1,3 +1,4 @@
+from dataclasses import field
 import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter import *
@@ -8,6 +9,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import os
 import numpy as np
+import csv
 from view3d import View3D
 from viewsegmentation import ViewSegmentation
 
@@ -18,6 +20,8 @@ class MainApp:
         self.root.geometry("1100x800+0+0")
         self.root.title("Veterbrae Evaluation Software")
         self.root.resizable(False, False)
+        self.photo = PhotoImage(file = '../icon/bone.png')
+        self.root.iconphoto(False, self.photo)
         #self.root.config(bg="skyblue")
 
         self.dir_path = None
@@ -102,6 +106,14 @@ class MainApp:
 
         # Get directory path 
         self.dir_path = self.get_directory()
+        if self.dir_path == None or self.dir_path == '':
+            tk.messagebox.showwarning('Error', 'No folder selected.')
+            return None
+        else:
+            for file in os.listdir(self.dir_path):
+                if not file.endswith('.dcm'):
+                    tk.messagebox.showwarning('Error', 'Please select a folder that contains all \'.dcm\' files.')
+                    return None
         
         # Get patient's info
         self.info = utils.load_dcm_info(self.dir_path, self.var1.get())
@@ -110,6 +122,21 @@ class MainApp:
 
         # Load all the slices
         self.dicom_slices = utils.load_slices(self.dir_path)
+
+        # Change path to temporary folder
+        base = os.path.basename(self.dir_path)
+        path = os.path.dirname(self.dir_path) + '/temp_' + base
+        if not os.path.exists(path):
+            os.makedirs(path)
+        
+        os.chdir(path)
+
+        # Create csv file 
+        field = ['Vertebral Label', 'Axial Area', 'Vertebral Height', 'Volume', 'Estimated BMC', 'aBMD', 'vBMD', 'Elastic Modulus']
+        if not os.path.exists('result.csv'):
+            with open('result.csv', 'w') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(field)
 
         # Transform all slices to HU
         self.hu_slices = utils.transform_all_to_hu(self.dicom_slices)
@@ -176,11 +203,6 @@ class MainApp:
         plot.set_aspect(saggital_aspect)
         plot.axis('off')
 
-        path = os.path.dirname(self.dir_path) + '/temp_images'
-        if not os.path.exists(path):
-            os.makedirs(path)
-        
-        os.chdir(path)
         plot.figure.savefig('saggital.png')
 
         if self.plane == 'Axial':
@@ -212,33 +234,28 @@ class MainApp:
         self.display_plane()
 
     def view_3d(self, _class, image, scan):
-        try:
-            if self.new.state() == "normal":
-                self.new.focus()
-        except:
-            self.new = tk.Toplevel(self.root)
-            _class(self.new, image, scan)
+        if self.dir_path == None or self.dir_path == '':
+            tk.messagebox.showinfo('Info', 'Please load the DICOM files first.')
+        else:
+            try:
+                if self.new.state() == "normal":
+                    self.new.focus()
+            except:
+                self.new = tk.Toplevel(self.root)
+                _class(self.new, image, scan)
 
     def view_segmentation(self, _class, hu_slices, dicom_slices):
-        try:
-            if self.new.state() == "normal":
-                self.new.focus()
-        except:
-            self.new = tk.Toplevel(self.root)
-            _class(self.new, hu_slices, dicom_slices)
+        if self.dir_path == None or self.dir_path == '':
+            tk.messagebox.showinfo('Info', 'Please load the DICOM files first.')
+        else:
+            try:
+                if self.new.state() == "normal":
+                    self.new.focus()
+            except:
+                self.new = tk.Toplevel(self.root)
+                _class(self.new, hu_slices, dicom_slices)
 
         
-        
-
-
-         
-        
-
-
-
-
-
-
 
 if __name__ == '__main__':
     root = tk.Tk()
