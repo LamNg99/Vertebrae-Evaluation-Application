@@ -1,4 +1,3 @@
-from dataclasses import field
 import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter import *
@@ -10,6 +9,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import os
 import numpy as np
 import csv
+from splash import SplashScreen
 from view3d import View3D
 from viewsegmentation import ViewSegmentation
 
@@ -18,7 +18,7 @@ class MainApp:
     def __init__(self, root):
         self.root = root 
         self.root.geometry("1100x800+0+0")
-        self.root.title("Veterbrae Evaluation Software")
+        self.root.title("VertScan")
         self.root.resizable(False, False)
         self.photo = PhotoImage(file = '../icon/bone.png')
         self.root.iconphoto(False, self.photo)
@@ -259,5 +259,10 @@ class MainApp:
 
 if __name__ == '__main__':
     root = tk.Tk()
+    root.withdraw()
+    win = tk.Toplevel()
+    splash = SplashScreen(win)
+    root.deiconify()
+    win.destroy()
     app = MainApp(root)
     root.mainloop()
