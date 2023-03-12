@@ -9,6 +9,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import os
 import numpy as np
 import csv
+from PIL import Image, ImageTk
 from splash import SplashScreen
 from view3d import View3D
 from viewsegmentation import ViewSegmentation
@@ -17,8 +18,8 @@ from viewsegmentation import ViewSegmentation
 class MainApp:
     def __init__(self, root):
         self.root = root 
-        self.root.geometry("1100x800+0+0")
-        self.root.title("VertScan")
+        self.root.geometry("1100x600+0+0")
+        self.root.title("Veterbrae Evaluation Software")
         self.root.resizable(False, False)
         self.photo = PhotoImage(file = '../icon/bone.png')
         self.root.iconphoto(False, self.photo)
@@ -26,20 +27,35 @@ class MainApp:
 
         self.dir_path = None
         self.image = None
-        self.window = None
-        self.plane = None
         self.dicom_slices = None
         self.hu_slices = None
 
         # Frames
         self.f1 = Frame(self.root)
-        self.f1.grid(row=1, column=1, columnspan=2, rowspan=2)
+        self.f1.grid(row=1, column=5, columnspan=4, rowspan=2)
 
-        self.f2 = Frame(self.root, highlightbackground='black', highlightthickness=1, width=500, height=500, bd= 0)
-        self.f2.grid(row=5, column=0, padx=20, pady=20)
+        # Sliders
+        self.x = IntVar()
+        self.y = IntVar()
+        self.z = IntVar()
 
-        self.f3 = Frame(self.root, highlightbackground='black', highlightthickness=1, width=500, height=500, bd= 0)
-        self.f3.grid(row=5, column=1, padx=20, pady=20, columnspan=2)
+        self.v1 = ttk.Scale(self.root, orient='vertical', length=400, from_=0, to=400, variable=self.x, command=self.update_x)
+        self.v1.grid(row=5, column=0)
+
+        self.h1 = ttk.Scale(self.root, orient='horizontal', length=400, from_=0, to=400, variable=self.y, command=self.update_y)
+        self.h1.grid(row=4, column=1, columnspan=2)
+
+        self.v2 = ttk.Scale(self.root, orient='vertical', length=400, from_=0, to=400, variable=self.z, command=self.update_z)
+        self.v2.grid(row=5, column=3)
+
+        self.h2 = ttk.Scale(self.root, orient='horizontal', length=300, from_=0, to=400, variable=self.x, command=self.update_x)
+        self.h2.grid(row=4, column=4, columnspan=2)
+
+        self.v3 = ttk.Scale(self.root, orient='vertical', length=400, from_=0, to=400, variable=self.z, command=self.update_z)
+        self.v3.grid(row=5, column=6)
+
+        self.h3 = ttk.Scale(self.root, orient='horizontal', length=300, from_=0, to=400, variable=self.y, command=self.update_y)
+        self.h3.grid(row=4, column=7, columnspan=2)
 
         # Scroll bar
         self.scroll_bar = Scrollbar(self.f1, width=10)
@@ -47,58 +63,50 @@ class MainApp:
 
         # Labels
         self.l1 = Label(self.root, text='DICOM info', font=('Arial', 10))
-        self.l1.grid(row=0, column=1)
+        self.l1.grid(row=0, column=5)
+
+        self.l2  = Label(self.root, text='Axial')
+        self.l2.grid(row=6, column=1, columnspan=2)
+
+        self.l3  = Label(self.root, text='Saggital')
+        self.l3.grid(row=6, column=4, columnspan=2)
+
+        self.l4  = Label(self.root, text='Coronal')
+        self.l4.grid(row=6, column=7, columnspan=2)
 
         # Checkboxes
         self.var1 = tk.BooleanVar()
         self.cb1 = Checkbutton(self.root, text='Protected Display', font=('Arial',10), variable=self.var1, onvalue='True', offvalue='False')
-        self.cb1.grid(row=0, column=2, pady=2)
+        self.cb1.grid(row=0, column=8, pady=2)
 
         # Text Boxes
-        self.tb1 = Text(self.f1, height=5, width=50, yscrollcommand=self.scroll_bar.set, wrap='none')
+        self.tb1 = Text(self.f1, height=5, yscrollcommand=self.scroll_bar.set, wrap='none', state='disabled')
         self.tb1.pack(fill='both')
         self.scroll_bar.config(command=self.tb1.yview)
 
         # Buttons
-        self.b1 = Button(self.root, text='Load DICOM File', command=self.load_dicom_file, width=50)
-        self.b1.grid(row=1, column=0, pady = 2)
+        self.b1 = Button(self.root, text='Load DICOM File', width=40, command=self.load_dicom_file)
+        self.b1.grid(row=1, column=1, pady = 2, columnspan=4)
 
-        self.b2 = Button(self.root, text='3D View', width=50, command= lambda: self.view_3d(View3D, self.hu_slices, self.dicom_slices))
-        self.b2.grid(row=2, column=0, pady = 2)
+        self.b2 = Button(self.root, text='3D View', width=40, command= lambda: self.view_3d(View3D, self.hu_slices, self.dicom_slices))
+        self.b2.grid(row=2, column=1, pady = 2, columnspan=4)
 
-        self.b3 = Button(self.root, text='Segmentation', width=50, command= lambda: self.view_segmentation(ViewSegmentation, self.hu_slices, self.dicom_slices))
-        self.b3.grid(row=3, column=0, pady = 2)
+        self.b3 = Button(self.root, text='Segmentation', width=40, command= lambda: self.view_segmentation(ViewSegmentation, self.hu_slices, self.dicom_slices))
+        self.b3.grid(row=3, column=1, pady = 2, columnspan=4)
 
-        # Combo boxes
-        self.plane_options = [
-            'Saggital',
-            'Axial',
-            'Coronal'
-        ]
-        self.cbb1 = ttk.Combobox(self.root, value=self.plane_options)
-        self.option = self.cbb1.current(0)
-        self.cbb1.bind('<<ComboboxSelected>>', self.plane_image)
-        self.cbb1.grid(row=4, column=0, pady = 20)
+        # Canvas
+        self.cv1 = Canvas(self.root, highlightbackground='black', highlightthickness=1, width=400, height=400, bd= 0)
+        self.cv1.grid(row=5, column=1, columnspan=2)
 
-        self.window_options = [
-            'Original',
-            'Soft Tissue',
-            'Bone',
-            'Mediastinum'
-        ]
-        self.cbb2 = ttk.Combobox(self.root, value=self.window_options)
-        self.option = self.cbb2.current(0)
-        self.cbb2.bind('<<ComboboxSelected>>', self.window_image)
-        self.cbb2.grid(row=4, column=1, pady = 20)
+        self.cv2 = Canvas(self.root, highlightbackground='black', highlightthickness=1, width=300, height=400, bd= 0)
+        self.cv2.grid(row=5, column=4, columnspan=2)
+
+        self.cv3 = Canvas(self.root, highlightbackground='black', highlightthickness=1, width=300, height=400, bd= 0)
+        self.cv3.grid(row=5, column=7, columnspan=2)
 
     def get_directory(self):
         file_path = tk.filedialog.askdirectory()
         return file_path
-
-    def get_dicom_image(self, index):
-        dicom_data = self.dicom_slices[index]
-        self.image = utils.transform_to_hu(dicom_data)
-        return self.image
 
     def load_dicom_file(self):
         # Clear any previous info in the textbox
@@ -107,21 +115,26 @@ class MainApp:
         # Get directory path 
         self.dir_path = self.get_directory()
         if self.dir_path == None or self.dir_path == '':
-            tk.messagebox.showwarning('Error', 'No folder selected.')
+            tk.messagebox.showinfo('Info', 'No folder selected.')
             return None
         else:
             for file in os.listdir(self.dir_path):
                 if not file.endswith('.dcm'):
-                    tk.messagebox.showwarning('Error', 'Please select a folder that contains all \'.dcm\' files.')
+                    tk.messagebox.showinfo('Info', 'Please select a folder that contains all \'.dcm\' files.')
                     return None
         
         # Get patient's info
         self.info = utils.load_dcm_info(self.dir_path, self.var1.get())
+        self.tb1.config(state='normal')
         for item in self.info:
             self.tb1.insert(1.0, f'{item[0]:25} : {item[1]} \n')
+        self.tb1.config(state='disable')
 
         # Load all the slices
         self.dicom_slices = utils.load_slices(self.dir_path)
+
+        # Transform all slices to HU
+        self.hu_slices = utils.transform_all_to_hu(self.dicom_slices)
 
         # Change path to temporary folder
         base = os.path.basename(self.dir_path)
@@ -138,100 +151,162 @@ class MainApp:
                 writer = csv.writer(csvfile)
                 writer.writerow(field)
 
-        # Transform all slices to HU
-        self.hu_slices = utils.transform_all_to_hu(self.dicom_slices)
-
-        # Get DICOM image
-        self.get_dicom_image(0)
-
-        # Display axial plane
         self.display_plane()
 
-        # Display first slice
-        self.display_sclice()
+        cur_x = self.dicom_slices[0].pixel_array.shape[0]//2
+        cur_y = self.dicom_slices[0].pixel_array.shape[1]//2
+        cur_z = len(self.dicom_slices)//2
 
-        # Slider
-        self.current_value = tk.IntVar()
-        self.s1 = ttk.Scale(self.root, orient='horizontal', length=400, from_=0, to=len(self.dicom_slices)-1, command=self.update_image, variable=self.current_value)
-        self.s1.grid(row=6, column=1, columnspan=2)
+        # Update sliders
+        self.v1.config(from_=0, to=self.dicom_slices[0].pixel_array.shape[0]-1)
+        self.v1.set(cur_x)
 
-    def display_sclice(self):
-        slice = self.image
-        if self.window ==  'Original':
-            slice = self.image
-        elif self.window == 'Soft Tissue':
-            slice = utils.apply_window(self.image, 40, 80)
-        elif self.window == 'Bone':
-            slice = utils.apply_window(self.image, 400, 1000)
-        elif self.window == 'Mediastinum':
-            slice = utils.apply_window(self.image, 50, 350)
+        self.h1.config(from_=0, to=self.dicom_slices[0].pixel_array.shape[1]-1)
+        self.h1.set(cur_y)
 
-        # Create a figure of specific size
-        figure = Figure(figsize=(5,5), dpi=100)
-        figure.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
+        self.v2.config(from_=0, to=len(self.dicom_slices)-1)
+        self.v2.set(cur_z)
 
-        # Define the points for plotting the figure
-        plot = figure.add_subplot(1, 1, 1)
-        plot.imshow(slice, cmap='gray')
-        plot.axis('off')
+        self.h2.config(from_=0, to=self.dicom_slices[0].pixel_array.shape[0]-1)
+        self.h2.set(cur_x)
 
-        canvas = FigureCanvasTkAgg(figure, self.root)
-        canvas.get_tk_widget().grid(row=5, column=1, padx=20, pady=20, columnspan=2)
+        self.v3.config(from_=0, to=len(self.dicom_slices)-1)
+        self.v3.set(cur_z)
+
+        self.h3.config(from_=0, to=self.dicom_slices[0].pixel_array.shape[1]-1)
+        self.h3.set(cur_y)
+
+        # Get imagees
+        self.plot_axial(z=cur_z)
+        self.plot_coronal(x=cur_x)
+        self.plot_saggital(y=cur_y)
+
+        self.display_axial()
+        self.display_saggital()
+        self.display_coronal()
 
     def display_plane(self):
         ds = self.dicom_slices
         pixel_spacing = ds[0].PixelSpacing
         slice_thickness = ds[0].SliceThickness
-        axial_aspect = pixel_spacing[1] / pixel_spacing[0]
-        saggital_aspect = pixel_spacing[1] / slice_thickness
-        coronal_aspect = slice_thickness / pixel_spacing[0]
+        self.axial_aspect = pixel_spacing[1] / pixel_spacing[0]
+        self.saggital_aspect = pixel_spacing[1] / slice_thickness
+        self.coronal_aspect = slice_thickness / pixel_spacing[0]
         img_shape = list(ds[0].pixel_array.shape)
         img_shape.append(len(ds))
-        img3d = np.zeros(img_shape)
+        self.img3d = np.zeros(img_shape)
 
         for i, s in enumerate(ds):
-            img2d = s.pixel_array
-            img3d[:, :, i] = img2d
-        
+            self.img3d[:, :, i] = s.pixel_array
+
         # Create a figure of specific size
-        figure = Figure(figsize=(5,5), dpi=100)
+        figure = Figure(figsize=(4,4), dpi=100)
         figure.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
 
-        # Define the points for plotting the figure
         plot = figure.add_subplot(1, 1, 1)
-        plot.imshow(img3d[:, img_shape[1]//2, :], cmap='gray')
-        plot.set_aspect(saggital_aspect)
+        plot.imshow(self.img3d[:, img_shape[1]//2, :], cmap='gray')
+        plot.set_aspect(self.saggital_aspect)
         plot.axis('off')
+        plot.figure.savefig('saggital_mid.png', transparent=True)
 
-        plot.figure.savefig('saggital.png')
+    def plot_axial(self, z):
+        figure = Figure(figsize=(4,4), dpi=100)
+        figure.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
 
-        if self.plane == 'Axial':
-            plot.imshow(img3d[:, :, img_shape[2]//2], cmap='gray')
-            plot.set_aspect(axial_aspect)
-            plot.axis('off')
-        elif self.plane == 'Saggital':
-            plot.imshow(img3d[:, img_shape[1]//2, :], cmap='gray')
-            plot.set_aspect(saggital_aspect)
-            plot.axis('off')
-        elif self.plane == 'Coronal':
-            plot.imshow(img3d[img_shape[0]//2, :, :].T, cmap='gray')
-            plot.set_aspect(coronal_aspect)
-            plot.axis('off')
+        plot = figure.add_subplot(1, 1, 1)
+        plot.imshow(self.img3d[:, :, len(self.dicom_slices)-z-1], cmap='gray')
+        # plot.set_aspect(self.axial_aspect)
+        plot.axis('off')
+        plot.figure.savefig('axial.png', transparent=True)
 
-        canvas = FigureCanvasTkAgg(figure, self.root)
-        canvas.get_tk_widget().grid(row=5, column=0, padx=20, pady=20)
+    def plot_saggital(self, y):
+        figure = Figure(figsize=(4,4), dpi=100)
+        figure.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
 
-    def update_image(self, event):
-        self.image = self.get_dicom_image(self.current_value.get())
-        self.display_sclice()
+        plot = figure.add_subplot(1, 1, 1)
+        plot.imshow(self.img3d[:, y, :], cmap='gray')
+        # plot.set_aspect(self.saggital_aspect)
+        plot.axis('off')
+        plot.figure.savefig('saggital.png', transparent=True)
 
-    def window_image(self, event):
-        self.window = self.cbb2.get()
-        self.display_sclice()
+    def plot_coronal(self, x):       
+        figure = Figure(figsize=(4,4), dpi=100)
+        figure.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
 
-    def plane_image(self, event):
-        self.plane = self.cbb1.get()
-        self.display_plane()
+        plot = figure.add_subplot(1, 1, 1)
+        plot.imshow(self.img3d[x, :, :].T, cmap='gray')
+        # plot.set_aspect(self.coronal_aspect)
+        plot.axis('off')
+        plot.figure.savefig('coronal.png', transparent=True)
+
+    def display_axial(self):
+        self.axial = ImageTk.PhotoImage(Image.open('axial.png').resize((400,400)))
+        self.cv1.create_image(0, 0, anchor=NW, image=self.axial)
+        cur_x = self.x.get()
+        cur_y = self.y.get()
+        cur_v1 = cur_x*400/self.dicom_slices[0].pixel_array.shape[0]
+        cur_h1 = cur_y*400/self.dicom_slices[0].pixel_array.shape[1]
+        self.cv1.delete('v1')
+        self.cv1.delete('h1')
+        self.cv1.create_line(0, cur_v1, 400, cur_v1, tag='v1', fill='red')
+        self.cv1.create_line(cur_h1, 0, cur_h1, 400, tag='h1', fill='red')
+
+    def display_saggital(self):
+        self.saggital = ImageTk.PhotoImage(Image.open('saggital.png').rotate(90).resize((300,400)))
+        self.cv2.create_image(0, 0, anchor=NW, image=self.saggital)
+        cur_z = self.z.get()
+        cur_x = self.x.get()
+        cur_v2 = cur_z*400/len(self.dicom_slices)
+        cur_h2 = cur_x*300/self.dicom_slices[0].pixel_array.shape[0]
+        self.cv2.delete('v2')
+        self.cv2.delete('h2')
+        self.cv2.create_line(0, cur_v2, 300, cur_v2, tag='v2', fill='red')
+        self.cv2.create_line(cur_h2, 0, cur_h2, 400, tag='h2', fill='red')
+
+    def display_coronal(self):
+        self.coronal = ImageTk.PhotoImage(Image.open('coronal.png').rotate(180).resize((300,400)))
+        self.cv3.create_image(0, 0, anchor=NW, image=self.coronal)
+        cur_z = self.z.get()
+        cur_y = self.y.get()
+        cur_v3 = cur_z*400/len(self.dicom_slices)
+        cur_h3 = cur_y*300/self.dicom_slices[0].pixel_array.shape[1]
+        self.cv3.delete('v3')
+        self.cv3.delete('h3')
+        self.cv3.create_line(0, cur_v3, 300, cur_v3, tag='v3', fill='red')
+        self.cv3.create_line(cur_h3, 0, cur_h3, 400, tag='h3', fill='red')
+
+    def update_x(self, event):
+        cur_x = self.x.get()
+        cur_v1 = cur_x*400/self.dicom_slices[0].pixel_array.shape[0]
+        cur_h2 = cur_x*300/self.dicom_slices[0].pixel_array.shape[0]
+        self.cv1.delete('v1')
+        self.cv2.delete('h2')
+        self.cv1.create_line(0, cur_v1, 400, cur_v1, tag='v1', fill='red')
+        self.cv2.create_line(cur_h2, 0, cur_h2, 400, tag='h2', fill='red')
+        self.plot_coronal(x=cur_x)
+        self.display_coronal()
+
+    def update_y(self, event):
+        cur_y = self.y.get()
+        cur_h1 = cur_y*400/self.dicom_slices[0].pixel_array.shape[1]
+        cur_h3 = cur_y*300/self.dicom_slices[0].pixel_array.shape[1]
+        self.cv1.delete('h1')
+        self.cv3.delete('h3')
+        self.cv1.create_line(cur_h1, 0, cur_h1, 400, tag='h1', fill='red')
+        self.cv3.create_line(cur_h3, 0, cur_h3, 400, tag='h3', fill='red')
+        self.plot_saggital(y=cur_y)
+        self.display_saggital()
+
+    def update_z(self, event):
+        cur_z = self.z.get()
+        cur_v2 = cur_z*400/len(self.dicom_slices)
+        cur_v3 = cur_z*400/len(self.dicom_slices)
+        self.cv2.delete('v2')
+        self.cv3.delete('v3')
+        self.cv2.create_line(0, cur_v2, 300, cur_v2, tag='v2', fill='red')
+        self.cv3.create_line(0, cur_v3, 300, cur_v3, tag='v3', fill='red')
+        self.plot_axial(z=cur_z)
+        self.display_axial()
 
     def view_3d(self, _class, image, scan):
         if self.dir_path == None or self.dir_path == '':
@@ -259,10 +334,10 @@ class MainApp:
 
 if __name__ == '__main__':
     root = tk.Tk()
-    root.withdraw()
-    win = tk.Toplevel()
-    splash = SplashScreen(win)
-    root.deiconify()
-    win.destroy()
+    # root.withdraw()
+    # win = tk.Toplevel()
+    # splash = SplashScreen(win)
+    # root.deiconify()
+    # win.destroy()
     app = MainApp(root)
     root.mainloop()
