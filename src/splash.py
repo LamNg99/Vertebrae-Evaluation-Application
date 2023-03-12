@@ -14,6 +14,8 @@ class SplashScreen:
         self.x = (self.screen_width//2)-(self.width_of_window//2)
         self.y = (self.screen_height//2)-(self.height_of_window//2)
         self.win.geometry(f'427x250+{self.x}+{self.y}')
+        self.icon = PhotoImage(file = '../icon/bone.png')
+        self.win.iconphoto(False, self.icon)
         #w.configure(bg='#ED1B76')
 
         self.photo = ImageTk.PhotoImage(Image.open('../icon/bone.png'))

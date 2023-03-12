@@ -123,8 +123,8 @@ class ViewSegmentation:
         self.canvas = Canvas(self.root, width=400, height=400)
         self.canvas.grid(row=6, column=2, columnspan=2)
         self.canvas.create_image(0, 0, anchor=NW, image=self.saggital_image)
-        self.canvas.create_line(0, self.val1.get(), 400, self.val1.get(), tag="top_line", fill='red')
-        self.canvas.create_line(0, self.val2.get(), 400, self.val2.get(), tag="top_line", fill='red')
+        self.canvas.create_line(0, self.val1.get(), 400, self.val1.get(), tag='top_line', fill='red')
+        self.canvas.create_line(0, self.val2.get(), 400, self.val2.get(), tag='bottom_line', fill='red')
 
         # Tree 
         self.tree = self.create_tree_widget()
@@ -178,12 +178,12 @@ class ViewSegmentation:
         return tree
 
     def on_slider1(self, event):
-        self.canvas.delete("top_line")
-        self.canvas.create_line(0, self.val1.get(), 400, self.val1.get(), tag="top_line", fill='red')
+        self.canvas.delete('top_line')
+        self.canvas.create_line(0, self.val1.get(), 400, self.val1.get(), tag='top_line', fill='red')
 
     def on_slider2(self, event):
-        self.canvas.delete("bottom_line")
-        self.canvas.create_line(0, self.val2.get(), 400, self.val2.get(), tag="bottom_line", fill='red')
+        self.canvas.delete('bottom_line')
+        self.canvas.create_line(0, self.val2.get(), 400, self.val2.get(), tag='bottom_line', fill='red')
 
     def update_slider1(self):
         self.s1.set(self.val1.get())
