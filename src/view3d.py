@@ -11,7 +11,13 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 class View3D:
     def __init__(self, root, image, scan):
         self.root = root 
-        self.root.geometry("800x700+0+0")
+        self.width_of_window = 800
+        self.height_of_window = 700
+        self.screen_width = self.root.winfo_screenwidth()
+        self.screen_height = self.root.winfo_screenheight()
+        self.pos_x = (self.screen_width//2)-(self.width_of_window//2)
+        self.pos_y = (self.screen_height//2)-(self.height_of_window//2)
+        self.root.geometry(f'{self.width_of_window}x{self.height_of_window}+{self.pos_x}+{self.pos_y}')
         self.root.title("3D View")
         self.root.resizable(False, False)
 

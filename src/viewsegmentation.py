@@ -16,14 +16,20 @@ from PIL import Image, ImageTk
 
 class ViewSegmentation:
     def __init__(self, root, hu_slices, dicom_slices):
-        self.root = root 
-        self.root.geometry("1450x800+0+0")
+        self.root = root
+        self.width_of_window = 1450
+        self.height_of_window = 800
+        self.screen_width = self.root.winfo_screenwidth()
+        self.screen_height = self.root.winfo_screenheight()
+        self.pos_x = (self.screen_width//2)-(self.width_of_window//2)
+        self.pos_y = (self.screen_height//2)-(self.height_of_window//2)
+        self.root.geometry(f'{self.width_of_window}x{self.height_of_window}+{self.pos_x}+{self.pos_y}') 
         self.root.title("Segmentation")
         self.root.resizable(False, False)
 
         self.hu_slices = hu_slices
         self.dicom_slices = dicom_slices
-        self.saggital_image = ImageTk.PhotoImage(Image.open('saggital.png').rotate(90).resize((400,400)))
+        self.saggital_image = ImageTk.PhotoImage(Image.open('saggital_mid.png').rotate(90).resize((400,400)))
         self.increment= 400/len(self.hu_slices)
         self.index = 0
         self.top_index = 0

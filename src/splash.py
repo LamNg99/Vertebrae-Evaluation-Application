@@ -11,9 +11,9 @@ class SplashScreen:
         self.height_of_window = 250
         self.screen_width = self.win.winfo_screenwidth()
         self.screen_height = self.win.winfo_screenheight()
-        self.x = (self.screen_width//2)-(self.width_of_window//2)
-        self.y = (self.screen_height//2)-(self.height_of_window//2)
-        self.win.geometry(f'427x250+{self.x}+{self.y}')
+        self.pos_x = (self.screen_width//2)-(self.width_of_window//2)
+        self.pos_y = (self.screen_height//2)-(self.height_of_window//2)
+        self.win.geometry(f'{self.width_of_window}x{self.height_of_window}+{self.pos_x}+{self.pos_y}')
         self.icon = PhotoImage(file = '../icon/bone.png')
         self.win.iconphoto(False, self.icon)
         #w.configure(bg='#ED1B76')
