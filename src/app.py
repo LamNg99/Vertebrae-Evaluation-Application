@@ -17,9 +17,15 @@ from viewsegmentation import ViewSegmentation
 
 class MainApp:
     def __init__(self, root):
-        self.root = root 
-        self.root.geometry("1100x600+0+0")
-        self.root.title("Veterbrae Evaluation Software")
+        self.root = root
+        self.width_of_window = 1100
+        self.height_of_window = 600
+        self.screen_width = self.root.winfo_screenwidth()
+        self.screen_height = self.root.winfo_screenheight()
+        self.pos_x = (self.screen_width//2)-(self.width_of_window//2)
+        self.pos_y = (self.screen_height//2)-(self.height_of_window//2)
+        self.root.geometry(f'{self.width_of_window}x{self.height_of_window}+{self.pos_x}+{self.pos_y}') 
+        self.root.title("VertScan")
         self.root.resizable(False, False)
         self.photo = PhotoImage(file = '../icon/bone.png')
         self.root.iconphoto(False, self.photo)
@@ -185,6 +191,11 @@ class MainApp:
         self.display_saggital()
         self.display_coronal()
 
+        # Update labels
+        self.l2.config(text=f'Axial (x = {cur_x+1}, y = {cur_y+1}, z = {cur_z+1})')
+        self.l3.config(text=f'Saggital (x = {cur_x+1}, y = {cur_y+1}, z = {cur_z+1})')
+        self.l4.config(text=f'Coronal (x = {cur_x+1}, y = {cur_y+1}, z = {cur_z+1})')
+
     def display_plane(self):
         ds = self.dicom_slices
         pixel_spacing = ds[0].PixelSpacing
@@ -207,7 +218,7 @@ class MainApp:
         plot.imshow(self.img3d[:, img_shape[1]//2, :], cmap='gray')
         plot.set_aspect(self.saggital_aspect)
         plot.axis('off')
-        plot.figure.savefig('saggital_mid.png', transparent=True)
+        plot.figure.savefig('saggital_mid.png')
 
     def plot_axial(self, z):
         figure = Figure(figsize=(4,4), dpi=100)
@@ -275,6 +286,14 @@ class MainApp:
         self.cv3.create_line(0, cur_v3, 300, cur_v3, tag='v3', fill='red')
         self.cv3.create_line(cur_h3, 0, cur_h3, 400, tag='h3', fill='red')
 
+    def update_label(self):
+        cur_x = self.x.get()
+        cur_y = self.y.get()
+        cur_z = self.z.get()
+        self.l2.config(text=f'Axial (x = {cur_x+1}, y = {cur_y+1}, z = {cur_z+1})')
+        self.l3.config(text=f'Saggital (x = {cur_x+1}, y = {cur_y+1}, z = {cur_z+1})')
+        self.l4.config(text=f'Coronal (x = {cur_x+1}, y = {cur_y+1}, z = {cur_z+1})')
+        
     def update_x(self, event):
         cur_x = self.x.get()
         cur_v1 = cur_x*400/self.dicom_slices[0].pixel_array.shape[0]
@@ -285,6 +304,7 @@ class MainApp:
         self.cv2.create_line(cur_h2, 0, cur_h2, 400, tag='h2', fill='red')
         self.plot_coronal(x=cur_x)
         self.display_coronal()
+        self.update_label()
 
     def update_y(self, event):
         cur_y = self.y.get()
@@ -296,6 +316,7 @@ class MainApp:
         self.cv3.create_line(cur_h3, 0, cur_h3, 400, tag='h3', fill='red')
         self.plot_saggital(y=cur_y)
         self.display_saggital()
+        self.update_label()
 
     def update_z(self, event):
         cur_z = self.z.get()
@@ -307,6 +328,7 @@ class MainApp:
         self.cv3.create_line(0, cur_v3, 300, cur_v3, tag='v3', fill='red')
         self.plot_axial(z=cur_z)
         self.display_axial()
+        self.update_label()
 
     def view_3d(self, _class, image, scan):
         if self.dir_path == None or self.dir_path == '':
@@ -334,10 +356,10 @@ class MainApp:
 
 if __name__ == '__main__':
     root = tk.Tk()
-    # root.withdraw()
-    # win = tk.Toplevel()
-    # splash = SplashScreen(win)
-    # root.deiconify()
-    # win.destroy()
+    root.withdraw()
+    win = tk.Toplevel()
+    splash = SplashScreen(win)
+    root.deiconify()
+    win.destroy()
     app = MainApp(root)
     root.mainloop()
