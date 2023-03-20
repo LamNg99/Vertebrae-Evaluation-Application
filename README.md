@@ -1,6 +1,8 @@
 <div align="center">
 
-![alt text](./icon/bone.png) # VertScan
+![alt text](./icon/bone.png) 
+
+# VertScan
 
 </div>
 
