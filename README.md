@@ -1,6 +1,6 @@
 <div align="center">
 
-![alt text](./icon/bone.png) 
+![Vertebral Scan](./icon/bone.png) 
 
 # VertScan
 
