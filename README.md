@@ -28,11 +28,11 @@ pip install -r requirements.txt
 git clone https://github.com/LamNg99/Vertebrae-Evaluation-Application.git
 ```
 
-1. Run `python3 app.py`
+2. Run `python3 app.py`
 
 ## Demo Video
 
-[![Watch the video](https://i9.ytimg.com/vi_webp/PU7ogfivMOU/mqdefault.webp?v=641df189&sqp=COT296AG&rs=AOn4CLAtosc3T3Pb8Xqb7IrZ3Wf1xnZW0g)](https://youtu.be/PU7ogfivMOU)
+[<img src="https://i.ytimg.com/vi/Hc79sDi3f0U/maxresdefault.jpg" width="50%">]([https://www.youtube.com/watch?v=Hc79sDi3f0U](https://youtu.be/PU7ogfivMOU) "VertScan Demo")
 
 ## Acknowledgments
 - [bone.png](https://github.com/LamNg99/Vertebrae-Evalution-Application/blob/main/icon/bone.png) under "Flaticon license" downloaded from [flaticon](https://www.flaticon.com/free-icon/bone_753151?term=bone+serach&related_id=753151) 
