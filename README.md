@@ -32,7 +32,7 @@ git clone https://github.com/LamNg99/Vertebrae-Evaluation-Application.git
 
 ## Demo Video
 
-[<img src="https://i.ytimg.com/vi/Hc79sDi3f0U/maxresdefault.jpg" width="50%">]([https://www.youtube.com/watch?v=Hc79sDi3f0U](https://youtu.be/PU7ogfivMOU) "VertScan Demo")
+[<img src="https://i.ytimg.com/vi/Hc79sDi3f0U/maxresdefault.jpg" width="50%">]([https://youtu.be/PU7ogfivMOU] "VertScan Demo")
 
 ## Acknowledgments
 - [bone.png](https://github.com/LamNg99/Vertebrae-Evalution-Application/blob/main/icon/bone.png) under "Flaticon license" downloaded from [flaticon](https://www.flaticon.com/free-icon/bone_753151?term=bone+serach&related_id=753151) 
