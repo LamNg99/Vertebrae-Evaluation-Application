@@ -28,8 +28,14 @@ def get_volume(area, height):
     return area * height
 
 def get_bmc(image):
-    bmc = image
-    return np.sum(bmc) / 10000
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    bmc = np.array(gray, dtype='float')
+    bmc[(bmc > 0) & (bmc <= 50)] = 0.0026
+    bmc[(bmc > 50) & (bmc <= 100)] = 0.0048
+    bmc[(bmc > 100) & (bmc <= 150)] = 0.0061
+    bmc[(bmc > 150) & (bmc <= 200)] = 0.0076
+    bmc[(bmc > 200) & (bmc <= 255)] = 0.0093
+    return np.sum(bmc)
 
 def get_aBMD(bmc, area):
     return bmc / area
