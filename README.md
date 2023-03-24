@@ -20,7 +20,7 @@ Installing the requirements
 pip install -r requirements.txt
 ```
 
-## Running 
+### Running 
 
 1. Clone the repo
 
