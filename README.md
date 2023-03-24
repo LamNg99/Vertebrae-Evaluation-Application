@@ -32,7 +32,7 @@ git clone https://github.com/LamNg99/Vertebrae-Evaluation-Application.git
 
 ## Demo Video
 
-[![VertScan Demo](https://i9.ytimg.com/vi_webp/PU7ogfivMOU/mqdefault.webp?v=641df189&sqp=CISv-KAG&rs=AOn4CLCr-CXeURI8mKM4UuIpakyxorKU9g)](https://youtu.be/PU7ogfivMOU)
+[![VertScan Demo](https://img.youtube.com/vi/PU7ogfivMOU/0.jpg)](https://youtu.be/PU7ogfivMOU)
 
 
 ## Acknowledgments
