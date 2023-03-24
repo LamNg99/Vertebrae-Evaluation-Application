@@ -7,4 +7,3 @@ imutils==0.5.4
 scipy==1.10.0
 scikit-image==0.19.3
 glob2==0.7
-
