@@ -1,7 +1,6 @@
 import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter import *
-from urllib import response
 
 class PopUp:
     def __init__(self, root, properties, tree):

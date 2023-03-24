@@ -5,7 +5,6 @@ import utils as utils
 import pydicom
 import matplotlib
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import os
 import numpy as np
 import csv
@@ -119,15 +118,18 @@ class MainApp:
         self.tb1.delete(1.0, END)
 
         # Get directory path 
-        self.dir_path = self.get_directory()
-        if self.dir_path == None or self.dir_path == '':
+        temp_dir = self.get_directory()
+
+        if temp_dir == None or temp_dir == '':
             tk.messagebox.showinfo('Info', 'No folder selected.')
-            return None
+            return
         else:
-            for file in os.listdir(self.dir_path):
+            for file in os.listdir(temp_dir):
                 if not file.endswith('.dcm'):
                     tk.messagebox.showinfo('Info', 'Please select a folder that contains all \'.dcm\' files.')
-                    return None
+                    return
+                else:
+                    self.dir_path = temp_dir
         
         # Get patient's info
         self.info = utils.load_dcm_info(self.dir_path, self.var1.get())

@@ -1,16 +1,15 @@
-from mailbox import ExternalClashError
 import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter import *
-from turtle import width
 import segmentation as seg
 import calculation as cal
 from popup import PopUp
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import os
 import cv2
 import csv
+import matplotlib
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from PIL import Image, ImageTk
 
 
